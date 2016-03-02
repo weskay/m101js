@@ -1,18 +1,18 @@
 /*
-  Copyright (c) 2008 - 2016 MongoDB, Inc. <http://mongodb.com>
+ Copyright (c) 2008 - 2016 MongoDB, Inc. <http://mongodb.com>
 
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*/
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 
 
 var MongoClient = require('mongodb').MongoClient,
@@ -24,71 +24,104 @@ function ItemDAO(database) {
 
     this.db = database;
 
-    this.getCategories = function(callback) {
+    this.getCategories = function (callback) {
         "use strict";
-        
+        var db = this.db;
         /*
-        * TODO-lab1A
-        *
-        * LAB #1A: 
-        * Create an aggregation query to return the total number of items in each category. The
-        * documents in the array output by your aggregation should contain fields for 
-        * "_id" and "num". HINT: Test your mongodb query in the shell first before implementing 
-        * it in JavaScript.
-        *
-        * Ensure categories are organized in alphabetical order before passing to the callback.
-        *
-        * Include a document for category "All" in the categories to pass to the callback. All
-        * should identify the total number of documents across all categories.
-        *
-        */
+         * TODO-lab1A
+         *
+         * LAB #1A:
+         * Create an aggregation query to return the total number of items in each category. The
+         * documents in the array output by your aggregation should contain fields for
+         * "_id" and "num". HINT: Test your mongodb query in the shell first before implementing
+         * it in JavaScript.
+         *
+         * Ensure categories are organized in alphabetical order before passing to the callback.
+         *
+         * Include a document for category "All" in the categories to pass to the callback. All
+         * should identify the total number of documents across all categories.
+         *
+         */
+        db.collection("item").aggregate([
+                {
+                    $project: {"category": 1}
+                },
+                {
+                    $match: {"category": {$ne: null}}
+                },
+                {
+                    $group: {
+                        _id: "$category",
+                        num: {$sum: 1}
+                    }
+                },
+                {
+                    $sort: {
+                        _id: 1
+                    }
+                }
+            ],
+            function (err, categories) {
+                db.collection("item").count(function (err, count) {
+                        var category = {
+                            _id: "All",
+                            num: count
+                        };
+                        categories.push(category);
+                        console.log(categories);
+                        callback(categories);
+                    }
+                )
+            });
 
-        var categories = [];
-        var category = {
-            _id: "All",
-            num: 9999
-        };
 
-        categories.push(category)
-
-        // TODO-lab1A Replace all code above (in this method).
-        
-        callback(categories);
     }
 
 
-    this.getItems = function(category, page, itemsPerPage, callback) {
+    this.getItems = function (category, page, itemsPerPage, callback) {
         "use strict";
-        
+        var db = this.db;
         /*
          * TODO-lab1B
          *
-         * LAB #1B: 
+         * LAB #1B:
          * Create a query to select only the items that should be displayed for a particular
-         * page. For example, on the first page, only the first itemsPerPage should be displayed. 
-         * Use limit() and skip() and the method parameters: page and itemsPerPage to identify 
-         * the appropriate products. Pass these items to the callback function. 
+         * page. For example, on the first page, only the first itemsPerPage should be displayed.
+         * Use limit() and skip() and the method parameters: page and itemsPerPage to identify
+         * the appropriate products. Pass these items to the callback function.
          *
-         * Do NOT sort items. 
+         * Do NOT sort items.
          *
          */
 
-        var pageItem = this.createDummyItem();
-        var pageItems = [];
-        for (var i=0; i<5; i++) {
-            pageItems.push(pageItem);
+        console.log(category);
+        console.log(page);
+        console.log(itemsPerPage);
+        // TODO-lab1B Replace all code above (in this method).
+        var query = {
+            "category":category
+        };
+        if(category=='All'){
+            query={};
         }
 
-        // TODO-lab1B Replace all code above (in this method).
 
-        callback(pageItems);
+        var offset = (page * itemsPerPage);
+
+        db.collection("item").find(query).skip(offset).limit(itemsPerPage).toArray(function(err,pageItems){
+            console.log(pageItems);
+            callback(pageItems);
+        }) ;
+
+
     }
 
 
-    this.getNumItems = function(category, callback) {
+    this.getNumItems = function (category, callback) {
         "use strict";
-        
+
         var numItems = 0;
+        var db = this.db;
 
         /*
          * TODO-lab1C
@@ -101,32 +134,44 @@ function ItemDAO(database) {
          * getNumItems() method.
          *
          */
-        
-        callback(numItems);
+        console.log(category)
+
+        var query = {
+            "category":category
+        };
+        if(category=='All'){
+            query={};
+        }
+
+        db.collection("item").find(query).count(function (err,numItems) {
+            console.log(numItems)
+            callback(numItems);
+        })
+
     }
 
 
-    this.searchItems = function(query, page, itemsPerPage, callback) {
+    this.searchItems = function (query, page, itemsPerPage, callback) {
         "use strict";
-        
+
         /*
          * TODO-lab2A
          *
          * LAB #2A: Using the value of the query parameter passed to this method, perform
-         * a text search against the item collection. Do not sort the results. Select only 
-         * the items that should be displayed for a particular page. For example, on the 
-         * first page, only the first itemsPerPage matching the query should be displayed. 
-         * Use limit() and skip() and the method parameters: page and itemsPerPage to 
-         * select the appropriate matching products. Pass these items to the callback 
-         * function. 
+         * a text search against the item collection. Do not sort the results. Select only
+         * the items that should be displayed for a particular page. For example, on the
+         * first page, only the first itemsPerPage matching the query should be displayed.
+         * Use limit() and skip() and the method parameters: page and itemsPerPage to
+         * select the appropriate matching products. Pass these items to the callback
+         * function.
          *
          * You will need to create a single text index on title, slogan, and description.
          *
          */
-        
+
         var item = this.createDummyItem();
         var items = [];
-        for (var i=0; i<5; i++) {
+        for (var i = 0; i < 5; i++) {
             items.push(item);
         }
 
@@ -136,25 +181,25 @@ function ItemDAO(database) {
     }
 
 
-    this.getNumSearchItems = function(query, callback) {
+    this.getNumSearchItems = function (query, callback) {
         "use strict";
 
         var numItems = 0;
-        
+
         /*
-        * TODO-lab2B
-        *
-        * LAB #2B: Using the value of the query parameter passed to this method, count the
-        * number of items in the "item" collection matching a text search. Pass the count
-        * to the callback function.
-        *
-        */
+         * TODO-lab2B
+         *
+         * LAB #2B: Using the value of the query parameter passed to this method, count the
+         * number of items in the "item" collection matching a text search. Pass the count
+         * to the callback function.
+         *
+         */
 
         callback(numItems);
     }
 
 
-    this.getItem = function(itemId, callback) {
+    this.getItem = function (itemId, callback) {
         "use strict";
 
         /*
@@ -164,7 +209,7 @@ function ItemDAO(database) {
          * to the callback function.
          *
          */
-        
+
         var item = this.createDummyItem();
 
         // TODO-lab3 Replace all code above (in this method).
@@ -173,26 +218,26 @@ function ItemDAO(database) {
     }
 
 
-    this.getRelatedItems = function(callback) {
+    this.getRelatedItems = function (callback) {
         "use strict";
 
         this.db.collection("item").find({})
             .limit(4)
-            .toArray(function(err, relatedItems) {
+            .toArray(function (err, relatedItems) {
                 assert.equal(null, err);
                 callback(relatedItems);
             });
     };
 
 
-    this.addReview = function(itemId, comment, name, stars, callback) {
+    this.addReview = function (itemId, comment, name, stars, callback) {
         "use strict";
 
         /*
          * TODO-lab4
          *
-         * LAB #4: Add a review to an item document. Reviews are stored as an 
-         * array value for the key "reviews". Each review has the fields: "name", "comment", 
+         * LAB #4: Add a review to an item document. Reviews are stored as an
+         * array value for the key "reviews". Each review has the fields: "name", "comment",
          * "stars", and "date".
          *
          */
@@ -210,7 +255,7 @@ function ItemDAO(database) {
     }
 
 
-    this.createDummyItem = function() {
+    this.createDummyItem = function () {
         "use strict";
 
         var item = {
