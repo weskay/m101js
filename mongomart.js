@@ -1,18 +1,18 @@
 /*
-  Copyright (c) 2008 - 2016 MongoDB, Inc. <http://mongodb.com>
+ Copyright (c) 2008 - 2016 MongoDB, Inc. <http://mongodb.com>
 
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*/
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 
 
 var express = require('express'),
@@ -22,7 +22,7 @@ var express = require('express'),
     assert = require('assert'),
     ItemDAO = require('./items').ItemDAO,
     CartDAO = require('./cart').CartDAO;
-    
+
 
 // Set up express
 app = express();
@@ -36,7 +36,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
  Configure nunjucks to work with express
  Not using consolidate because I'm waiting on better support for template inheritance with
  nunjucks via consolidate. See: https://github.com/tj/consolidate.js/pull/224
-*/
+ */
 var env = nunjucks.configure('views', {
     autoescape: true,
     express: app
@@ -59,18 +59,18 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
 
     var items = new ItemDAO(db);
     var cart = new CartDAO(db);
-    
+
     var router = express.Router();
 
     // Homepage
     router.get("/", function(req, res) {
         "use strict";
-        
+
         var page = req.query.page ? parseInt(req.query.page) : 0;
         var category = req.query.category ? req.query.category : "All";
 
         items.getCategories(function(categories) {
-            
+
             items.getItems(category, page, ITEMS_PER_PAGE, function(pageItems) {
 
                 items.getNumItems(category, function(itemCount) {
@@ -79,21 +79,21 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
                     if (itemCount > ITEMS_PER_PAGE) {
                         numPages = Math.ceil(itemCount / ITEMS_PER_PAGE);
                     }
-                
+
                     res.render('home', { category_param: category,
-                                         categories: categories,
-                                         useRangeBasedPagination: false,
-                                         itemCount: itemCount,
-                                         pages: numPages,
-                                         page: page,
-                                         items: pageItems });
-                    
+                        categories: categories,
+                        useRangeBasedPagination: false,
+                        itemCount: itemCount,
+                        pages: numPages,
+                        page: page,
+                        items: pageItems });
+
                 });
             });
         });
     });
 
-    
+
     router.get("/search", function(req, res) {
         "use strict";
 
@@ -105,17 +105,17 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
             items.getNumSearchItems(query, function(itemCount) {
 
                 var numPages = 0;
-                
+
                 if (itemCount > ITEMS_PER_PAGE) {
                     numPages = Math.ceil(itemCount / ITEMS_PER_PAGE);
                 }
-                
+
                 res.render('search', { queryString: query,
-                                       itemCount: itemCount,
-                                       pages: numPages,
-                                       page: page,
-                                       items: searchItems });
-                
+                    itemCount: itemCount,
+                    pages: numPages,
+                    page: page,
+                    items: searchItems });
+
             });
         });
     });
@@ -133,11 +133,11 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
                 res.status(404).send("Item not found.");
                 return;
             }
-            
+
             var stars = 0;
             var numReviews = 0;
             var reviews = [];
-            
+
             if ("reviews" in item) {
                 numReviews = item.reviews.length;
 
@@ -156,14 +156,14 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
 
                 console.log(relatedItems);
                 res.render("item",
-                           {
-                               userId: USERID,
-                               item: item,
-                               stars: stars,
-                               reviews: reviews,
-                               numReviews: numReviews,
-                               relatedItems: relatedItems
-                           });
+                    {
+                        userId: USERID,
+                        item: item,
+                        stars: stars,
+                        reviews: reviews,
+                        numReviews: numReviews,
+                        relatedItems: relatedItems
+                    });
             });
         });
     });
@@ -194,39 +194,39 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
         res.redirect("/user/" + USERID + "/cart");
     });
 
-               
+
     router.get("/user/:userId/cart", function(req, res) {
         "use strict";
 
-        var userId = parseInt(req.params.userId);
+        var userId = req.params.userId;
         cart.getCart(userId, function(userCart) {
             var total = cartTotal(userCart);
             res.render("cart",
-                       {
-                           userId: userId,
-                           updated: false,
-                           cart: userCart,
-                           total: total
-                       });
+                {
+                    userId: userId,
+                    updated: false,
+                    cart: userCart,
+                    total: total
+                });
         });
     });
 
-    
+
     router.post("/user/:userId/cart/items/:itemId", function(req, res) {
         "use strict";
 
-        var userId = parseInt(req.params.userId);
+        var userId = req.params.userId;
         var itemId = parseInt(req.params.itemId);
 
         var renderCart = function(userCart) {
             var total = cartTotal(userCart);
             res.render("cart",
-                       {
-                           userId: userId,
-                           updated: true,
-                           cart: userCart,
-                           total: total
-                       });
+                {
+                    userId: userId,
+                    updated: true,
+                    cart: userCart,
+                    total: total
+                });
         };
 
         cart.itemInCart(userId, itemId, function(item) {
@@ -236,7 +236,7 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
                     cart.addItem(userId, item, function(userCart) {
                         renderCart(userCart);
                     });
-            
+
                 });
             } else {
                 cart.updateQuantity(userId, itemId, item.quantity+1, function(userCart) {
@@ -249,23 +249,23 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
 
     router.post("/user/:userId/cart/items/:itemId/quantity", function(req, res) {
         "use strict";
-        
-        var userId = parseInt(req.params.userId);
+
+        var userId = req.params.userId;
         var itemId = parseInt(req.params.itemId);
         var quantity = parseInt(req.body.quantity);
 
         cart.updateQuantity(userId, itemId, quantity, function(userCart) {
             var total = cartTotal(userCart);
             res.render("cart",
-                       {
-                           userId: userId,
-                           updated: true,
-                           cart: userCart,
-                           total: total
-                       });
+                {
+                    userId: userId,
+                    updated: true,
+                    cart: userCart,
+                    total: total
+                });
         });
     });
-    
+
 
     function cartTotal(userCart) {
         "use strict";
@@ -279,7 +279,7 @@ MongoClient.connect('mongodb://localhost:27017/mongomart', function(err, db) {
         return total;
     }
 
-    
+
     // Use the router routes in our application
     app.use('/', router);
 

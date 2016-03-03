@@ -36,17 +36,20 @@ function CartDAO(database) {
         * callback function.
         *
         */
-
-        var userCart = {
-            userId: userId,
-            items: []
-        }
-        var dummyItem = this.createDummyItem();
-        userCart.items.push(dummyItem);
+        this.db.collection("cart").findOne({"userId":userId},function(err,userCart){
+            console.log(userCart);
+            callback(userCart);
+        }); 
+        //var userCart = {
+        //    userId: userId,
+        //    items: []
+        //}
+        //var dummyItem = this.createDummyItem();
+        //userCart.items.push(dummyItem);
         
         // TODO-lab5 Replace all code above (in this method).
 
-        callback(userCart);
+
     }
 
 
